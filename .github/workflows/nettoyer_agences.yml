@@ -41,7 +41,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add motifs_reseaux.txt agences_independantes.csv agences_retirees.csv 2>/dev/null || true
+          for f in motifs_reseaux.txt agences_independantes.csv agences_retirees.csv; do
+            if [ -f "$f" ]; then
+              git add -f "$f"
+            else
+              echo "Fichier absent, ignoré : $f"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "Aucun changement"
           else
