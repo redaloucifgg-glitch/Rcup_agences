@@ -11,6 +11,10 @@ on:
         description: "Retirer aussi les noms contenant un réseau (true/false)"
         required: false
         default: "false"
+      garder_reseaux:
+        description: "Garder les réseaux (true/false)"
+        required: false
+        default: "true"
 
 permissions:
   contents: write
@@ -27,9 +31,11 @@ jobs:
         env:
           SEUIL: ${{ github.event.inputs.seuil }}
           AVEC_NOM: ${{ github.event.inputs.avec_nom }}
+          GARDER_RESEAUX: ${{ github.event.inputs.garder_reseaux }}
         run: |
           OPTS="--seuil $SEUIL"
           if [ "$AVEC_NOM" = "true" ]; then OPTS="$OPTS --avec-nom"; fi
+          if [ "$GARDER_RESEAUX" = "true" ]; then OPTS="$OPTS --garder-reseaux"; fi
           python nettoyer_agences.py $OPTS | tee resultat.txt
           {
             echo '## Nettoyage des agences'
