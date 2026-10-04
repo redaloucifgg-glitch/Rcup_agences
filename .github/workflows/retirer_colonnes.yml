@@ -1,0 +1,47 @@
+name: Retirer des colonnes
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichier:
+        description: "CSV à modifier"
+        required: false
+        default: "agences_independantes.csv"
+      colonnes:
+        description: "Colonnes à retirer, séparées par des virgules"
+        required: false
+        default: "lien_statut,lien_ok"
+
+permissions:
+  contents: write
+
+jobs:
+  retirer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Retirer les colonnes
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+          COLONNES: ${{ github.event.inputs.colonnes }}
+        run: python retirer_colonnes.py "$FICHIER" --colonnes "$COLONNES"
+      - name: Commit et push
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f "$FICHIER" ]; then
+            git add -f "$FICHIER"
+          else
+            echo "Fichier absent : $FICHIER"
+          fi
+          if git diff --cached --quiet; then
+            echo "Aucun changement"
+          else
+            git commit -m "Colonnes retirées"
+            git push
+          fi
