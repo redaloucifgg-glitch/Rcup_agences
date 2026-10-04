@@ -33,7 +33,7 @@ GENERIQUES = {"agence", "agences", "cabinet", "groupe", "immobilier", "immobilie
               "et", "en", "a", "au", "aux", "the", "mr", "mme", "m"}
 JURIDIQUES = {"1000": "Entrepreneur individuel", "5498": "EURL", "5499": "SARL",
               "5599": "SA", "5710": "SAS", "5720": "SASU", "6540": "SCI",
-              "5202": "SNC", "5307": "SA (société en nom collectif)"}
+              "5202": "SNC", "6599": "Autre société civile"}
 
 
 def normaliser(texte):
@@ -44,6 +44,8 @@ def normaliser(texte):
 
 def marque(texte):
     """Premier mot significatif (sans forme juridique ni mot générique)."""
+    if "non diffusible" in normaliser(texte):
+        return ""
     for mot in normaliser(texte).split():
         if mot not in FORMES and mot not in GENERIQUES and len(mot) > 1:
             return mot
@@ -224,8 +226,11 @@ def main():
     print(f"Motifs d'ENSEIGNE sur 5 sociétés ou plus : {len(g_ens)} ({sum(len(x) for _, x in g_ens)} sociétés)")
     for m, ls in g_ens[:10]:
         print(f"  {m} : {len(ls)}")
-    g_nom = groupes("nom", lambda l: [l.get("nom") or ""])
-    print(f"Motifs de NOM sur 5 sociétés ou plus : {len(g_nom)} (bruyant : noms de famille, mots courants)")
+    # le nom d'un entrepreneur individuel (1000) est un nom de personne : exclu ici
+    g_nom = groupes("nom", lambda l: [] if (l.get("nature_juridique") or "").strip() == "1000"
+                    else [l.get("nom") or ""])
+    print(f"Motifs de NOM (hors entrepreneurs individuels) sur 5 sociétés ou plus : {len(g_nom)} "
+          "(encore bruyant : noms de famille, mots courants)")
     for m, ls in g_nom[:10]:
         print(f"  {m} : {len(ls)}")
 
@@ -302,4 +307,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+                
