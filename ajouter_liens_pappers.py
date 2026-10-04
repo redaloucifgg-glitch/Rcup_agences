@@ -5,8 +5,11 @@ Colonnes ajoutées : lien_pappers, lien_statut (code HTTP ou nom de l'erreur), l
 Usage :
   python ajouter_liens_pappers.py                       tout le fichier agences_independantes.csv
   python ajouter_liens_pappers.py --echantillon 50      teste seulement 50 liens (pour essayer)
-  python ajouter_liens_pappers.py --workers 3           moins de requêtes en parallèle
+  python ajouter_liens_pappers.py --pause 5             attend 5 s après chaque requête
+  python ajouter_liens_pappers.py --workers 1           requêtes en parallèle
   python ajouter_liens_pappers.py mon_fichier.csv       autre fichier
+
+Les lignes déjà en 200, 404 ou 410 ne sont pas re-testées : on peut relancer pour reprendre.
 """
 import csv
 import sys
@@ -20,7 +23,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (verification de liens)"}
 DEFINITIFS = {"200", "404", "410"}
 
 
-def verifier(siren):
+def verifier(siren, pause):
     url = f"https://www.pappers.fr/entreprise/{siren}"
     statut = "ErreurReseau"
     for essai in range(3):
@@ -31,18 +34,20 @@ def verifier(siren):
             r.close()
             if code == 429:                      # trop de requêtes : on attend et on réessaie
                 statut = "429"
-                time.sleep(5 * (essai + 1))
+                time.sleep(max(pause, 5) * (essai + 1))
                 continue
+            time.sleep(pause)
             return str(code)
         except requests.RequestException as e:
             statut = type(e).__name__
             time.sleep(2)
+    time.sleep(pause)
     return statut
 
 
 def main():
     args = sys.argv[1:]
-    echantillon, workers = 0, 5
+    echantillon, workers, pause = 0, 1, 0.0
     if "--echantillon" in args:
         i = args.index("--echantillon")
         echantillon = int(args[i + 1])
@@ -50,6 +55,10 @@ def main():
     if "--workers" in args:
         i = args.index("--workers")
         workers = int(args[i + 1])
+        del args[i:i + 2]
+    if "--pause" in args:
+        i = args.index("--pause")
+        pause = float(args[i + 1])
         del args[i:i + 2]
     fichier = args[0] if args else "agences_independantes.csv"
 
@@ -71,10 +80,12 @@ def main():
                 if l["lien_pappers"] and (l.get("lien_statut") or "") not in DEFINITIFS]
     if echantillon:
         a_tester = a_tester[:echantillon]
-    print(f"{len(a_tester)} liens à vérifier (workers : {workers})")
+    duree = len(a_tester) * pause / max(workers, 1) / 60
+    print(f"{len(a_tester)} liens à vérifier (workers : {workers}, pause : {pause} s, "
+          f"durée minimale : {duree:.0f} min)")
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for l, statut in zip(a_tester, pool.map(lambda x: verifier(x["siren"]), a_tester)):
+        for l, statut in zip(a_tester, pool.map(lambda x: verifier(x["siren"], pause), a_tester)):
             l["lien_statut"] = statut
             l["lien_ok"] = "oui" if statut == "200" else "non"
 
