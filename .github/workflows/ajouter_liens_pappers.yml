@@ -1,0 +1,61 @@
+name: Ajouter et vérifier les liens Pappers
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichier:
+        description: "CSV à enrichir"
+        required: false
+        default: "agences_independantes.csv"
+      echantillon:
+        description: "Nombre de liens à tester (0 = tous)"
+        required: false
+        default: "50"
+      workers:
+        description: "Requêtes en parallèle"
+        required: false
+        default: "5"
+
+permissions:
+  contents: write
+
+jobs:
+  liens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer requests
+        run: pip install requests
+      - name: Ajouter et vérifier les liens
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+          ECHANTILLON: ${{ github.event.inputs.echantillon }}
+          WORKERS: ${{ github.event.inputs.workers }}
+        run: |
+          python ajouter_liens_pappers.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" | tee resultat.txt
+          {
+            echo '## Vérification des liens Pappers'
+            echo '```'
+            cat resultat.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit et push
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f "$FICHIER" ]; then
+            git add -f "$FICHIER"
+          else
+            echo "Fichier absent : $FICHIER"
+          fi
+          if git diff --cached --quiet; then
+            echo "Aucun changement"
+          else
+            git commit -m "Liens Pappers vérifiés"
+            git push
+          fi
