@@ -3,6 +3,7 @@
   1. les entrepreneurs individuels (nature juridique 1000)
   2. les sociétés civiles (codes 65xx : SCI, etc.)
   3. les réseaux (reseaux.txt + motifs_reseaux.txt, cherchés dans l'ENSEIGNE)
+     -> désactivé avec --garder-reseaux
   4. les sociétés sans gérant exploitable
   5. les gérants qui dirigent SEUIL sociétés ou plus (5 par défaut)
 
@@ -16,6 +17,7 @@ Usage :
   python nettoyer_agences.py --avec-nom     retire aussi les noms contenant un réseau de
                                             reseaux.txt (plus bruyant : IAD, Era, Lamy...)
   python nettoyer_agences.py --sans-motifs  n'utilise que reseaux.txt, sans étape de validation
+  python nettoyer_agences.py --garder-reseaux  ne retire pas les réseaux (étape 3 ignorée)
 
 Entrée : agences_uniques.csv
 Sorties : agences_independantes.csv (gardées), agences_retirees.csv (avec la raison)
@@ -121,6 +123,7 @@ def main():
         del args[i:i + 2]
     avec_nom = "--avec-nom" in args
     sans_motifs = "--sans-motifs" in args
+    garder_reseaux = "--garder-reseaux" in args
     args = [a for a in args if not a.startswith("--")]
     entree = args[0] if args else "agences_uniques.csv"
 
@@ -131,16 +134,20 @@ def main():
     if "nature_juridique" not in champs:
         sys.exit("Colonne nature_juridique absente : relance fetch_sirene.py (force) d'abord.")
 
-    if not sans_motifs and not os.path.exists("motifs_reseaux.txt"):
+    if (not sans_motifs and not garder_reseaux
+            and not os.path.exists("motifs_reseaux.txt")):
         n = generer_motifs(lignes)
         print(f"{n} motifs écrits dans motifs_reseaux.txt.")
         print("Relis-le : supprime les lignes qui ne sont pas des réseaux, puis relance la commande.")
         return
 
-    reseaux = charger("reseaux.txt") + ([] if sans_motifs else charger("motifs_reseaux.txt"))
-    if not reseaux:
-        print("ATTENTION : aucun réseau chargé (reseaux.txt introuvable ?).")
-    reseaux_nom = charger("reseaux.txt")
+    if garder_reseaux:
+        reseaux, reseaux_nom = [], []
+    else:
+        reseaux = charger("reseaux.txt") + ([] if sans_motifs else charger("motifs_reseaux.txt"))
+        reseaux_nom = charger("reseaux.txt")
+        if not reseaux:
+            print("ATTENTION : aucun réseau chargé (reseaux.txt introuvable ?).")
 
     # nombre de sociétés par gérant (sur toute la liste, avant retraits)
     gerant_soc = defaultdict(set)
