@@ -1,0 +1,49 @@
+name: Analyser les agences indépendantes
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichier:
+        description: "CSV à analyser"
+        required: false
+        default: "agences_independantes.csv"
+
+permissions:
+  contents: write
+
+jobs:
+  analyser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Analyser
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+        run: |
+          python analyser_independantes.py "$FICHIER" | tee analyse_independantes.txt
+          {
+            echo '## Agences indépendantes'
+            echo '```'
+            cat analyse_independantes.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit et push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for f in analyse_independantes.txt effectifs_repartition.csv reseaux_candidats_independantes.csv; do
+            if [ -f "$f" ]; then
+              git add -f "$f"
+            else
+              echo "Fichier absent, ignoré : $f"
+            fi
+          done
+          if git diff --cached --quiet; then
+            echo "Aucun changement"
+          else
+            git commit -m "Analyse des agences indépendantes"
+            git push
+          fi
