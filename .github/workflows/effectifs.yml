@@ -1,0 +1,68 @@
+name: Récupérer les effectifs
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichier:
+        description: "CSV à enrichir"
+        required: false
+        default: "agences_independantes.csv"
+      echantillon:
+        description: "Nombre de lignes à traiter (0 = toutes)"
+        required: false
+        default: "50"
+      workers:
+        description: "Requêtes en parallèle"
+        required: false
+        default: "4"
+      pause:
+        description: "Pause en secondes après chaque requête"
+        required: false
+        default: "0.8"
+
+permissions:
+  contents: write
+
+jobs:
+  effectifs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer requests
+        run: pip install requests
+      - name: Récupérer les effectifs
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+          ECHANTILLON: ${{ github.event.inputs.echantillon }}
+          WORKERS: ${{ github.event.inputs.workers }}
+          PAUSE: ${{ github.event.inputs.pause }}
+        run: |
+          python recuperer_effectifs.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --pause "$PAUSE" --duree-max 330 | tee resultat.txt
+          {
+            echo '## Effectifs'
+            echo '```'
+            cat resultat.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit et push
+        if: always()
+        env:
+          FICHIER: ${{ github.event.inputs.fichier }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f "$FICHIER" ]; then
+            git add -f "$FICHIER"
+          else
+            echo "Fichier absent : $FICHIER"
+          fi
+          if git diff --cached --quiet; then
+            echo "Aucun changement"
+          else
+            git commit -m "Effectifs ajoutés"
+            git push
+          fi
