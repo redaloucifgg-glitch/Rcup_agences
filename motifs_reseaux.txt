@@ -1,0 +1,35 @@
+# Motifs d'enseigne qui se répètent (réseaux possibles).
+# Supprime (ou mets # devant) les lignes qui ne sont PAS un réseau,
+# puis relance : python nettoyer_agences.py
+# Tu peux aussi préciser un motif (ex. remplacer cote par cote france).
+
+century 21    # 359 sociétés, ex. CENTURY 21 / CENTURY 21 CHRISTAL IMMOBILIER
+laforet    # 292 sociétés, ex. LAFORET IMMOBILIER / LAFORET
+orpi    # 244 sociétés, ex. ORPI  [AMBIGU : plusieurs enseignes différentes]
+guy hoquet    # 231 sociétés, ex. GUY HOQUET L'IMMOBILIER
+era    # 148 sociétés, ex. ERA IMMOBILIER / ERA / ERA API IMMOBILIER
+stephane plaza    # 144 sociétés, ex. STEPHANE PLAZA IMMOBILIER / STEPHANE PLAZA MEXIMIEUX / STEPHANE GOUTAUDIER IMMOBILIER
+nestenn    # 127 sociétés, ex. NESTENN
+cote    # 104 sociétés, ex. COTE DEMEURE BOHAIN / COTE DEMEURE / AGENCE COTE D'AZUR PROVENCE  [AMBIGU : plusieurs enseignes différentes]
+adresse    # 93 sociétés, ex. L'ADRESSE / L ADRESSE IMMOBILIER
+saint    # 64 sociétés, ex. SAINT JOSEPH IMMOBILIER GESTION / SAINT JOSEPH IMMOBILIER / AGENCE SAINT MICHEL  [AMBIGU : plusieurs enseignes différentes]
+maison    # 52 sociétés, ex. MAISON MASSENA COLLECTIF IMMOBILIER / MAISON MONNIER / MAISON QUATRE  [AMBIGU : plusieurs enseignes différentes]
+arthurimmo com    # 50 sociétés, ex. ARTHURIMMO / ARTHURIMMO.COM
+solvimo    # 49 sociétés, ex. SOLVIMO IMMOBILIER / SOLVIMO
+home    # 40 sociétés, ex. HOME CLEFS PROPERTIES / HOME PERFORMANCE / HOME PEARL IMMOBILIER  [AMBIGU : plusieurs enseignes différentes]
+sixieme avenue    # 37 sociétés, ex. SIXIEME AVENUE, L'IMMOBILIER PAR M6 / SIXIEME AVENUE
+avis    # 37 sociétés, ex. AVIS IMMOBILIER
+cap    # 35 sociétés, ex. CAP REAL ESTATE / CAP LUXE PROPERTIES / CAP 2I  [AMBIGU : plusieurs enseignes différentes]
+sud    # 31 sociétés, ex. C.R.I. DU SUD EST / SUD ESPACE IMMOBILIER / AGENCE IMMO-SUD  [AMBIGU : plusieurs enseignes différentes]
+centre    # 27 sociétés, ex. CENTRE / IMMO CENTRE / CENTRE IMMOBILIER
+residence    # 26 sociétés, ex. AGENCE RESIDENCE / LA RESIDENCE
+arthur    # 24 sociétés, ex. ARTHUR BLIN IMMOBILIER / ARTHUR IMMO AGENCE DE CHARLEVILLE / ARTHUR LOYD DESVALLOIS IMMOBILIER D'ENTREPRISE  [AMBIGU : plusieurs enseignes différentes]
+espace    # 23 sociétés, ex. ESPACE IMMO / ESPACE IMMOBILIER  [AMBIGU : plusieurs enseignes différentes]
+foret    # 22 sociétés, ex. AGENCE DE LA FORET / AGENCE DE LA FORET BLANCHE / LA FORET
+square habitat    # 22 sociétés, ex. AGENCE DU SQUARE / SQUARE HABITAT / SQUARE HABITAT CREDIT AGRICOLE
+france    # 20 sociétés, ex. IMMO DE FRANCE / FRANCE-FARMS / IMMO DE FRANCE AGENCE BELLE RIVE  [AMBIGU : plusieurs enseignes différentes]
+cle    # 20 sociétés, ex. LA CLE DESPRES IMMOBILIER / LA CLE DES CHAMPS / LA CLE ROUGE  [AMBIGU : plusieurs enseignes différentes]
+pro    # 19 sociétés, ex. PRO GESTION CONSEIL / LE PRO DE L'IMMO / PRO COMM  [AMBIGU : plusieurs enseignes différentes]
+conseil    # 19 sociétés, ex. IMMO CONSEIL / CONSEIL IMMO
+riviera    # 18 sociétés, ex. RIVIERA ESTATES / RIVIERA LIFESTYLE REAL ESTATE - CARLTON GROUP / RIVIERA IMMOBILIER  [AMBIGU : plusieurs enseignes différentes]
+etude    # 18 sociétés, ex. ETUDE DU CAP / ETUDE IMMOBILIERE D'AIX / ETUDE COUDERC  [AMBIGU : plusieurs enseignes différentes]
