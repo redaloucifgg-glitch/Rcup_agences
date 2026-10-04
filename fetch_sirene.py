@@ -38,8 +38,8 @@ DEPARTEMENTS = (
 )
 
 COLONNES = ["siren", "siret_siege", "nom", "enseigne", "adresse",
-            "code_postal", "ville", "date_creation", "gerants",
-            "source", "date_collecte"]
+            "code_postal", "ville", "date_creation", "nature_juridique",
+            "gerants", "source", "date_collecte"]
 
 FORCE = False
 
@@ -90,6 +90,7 @@ def ligne_de(e, s):
         "code_postal": s.get("code_postal") or "",
         "ville": s.get("libelle_commune") or "",
         "date_creation": e.get("date_creation") or "",
+        "nature_juridique": e.get("nature_juridique") or "",
         "gerants": gerants(e),
         "source": "https://annuaire-entreprises.data.gouv.fr/entreprise/" + siren,
         "date_collecte": date.today().isoformat(),
@@ -217,3 +218,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+        
