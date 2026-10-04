@@ -14,6 +14,10 @@ on:
       workers:
         description: "Requêtes en parallèle"
         required: false
+        default: "1"
+      pause:
+        description: "Pause en secondes après chaque requête"
+        required: false
         default: "5"
 
 permissions:
@@ -22,6 +26,7 @@ permissions:
 jobs:
   liens:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,8 +39,9 @@ jobs:
           FICHIER: ${{ github.event.inputs.fichier }}
           ECHANTILLON: ${{ github.event.inputs.echantillon }}
           WORKERS: ${{ github.event.inputs.workers }}
+          PAUSE: ${{ github.event.inputs.pause }}
         run: |
-          python ajouter_liens_pappers.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" | tee resultat.txt
+          python ajouter_liens_pappers.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --pause "$PAUSE" | tee resultat.txt
           {
             echo '## Vérification des liens Pappers'
             echo '```'
