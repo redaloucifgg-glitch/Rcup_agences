@@ -7,10 +7,14 @@ Colonnes ajoutées :
   effectif_siege   libellé pour l'établissement siège (vérifié avec siret_siege)
   effectif_statut  ok / introuvable / HTTPxxx / erreur
 
+Le débit est limité globalement (--rate appels par seconde, 6 par défaut, la limite de l'API
+est de 7) : on peut donc mettre beaucoup de workers, même si l'API met plusieurs secondes à
+répondre, sans dépasser la limite.
+
 Usage :
   python recuperer_effectifs.py                      tout agences_independantes.csv
   python recuperer_effectifs.py --echantillon 50     seulement 50 lignes (pour essayer)
-  python recuperer_effectifs.py --workers 4 --pause 0.8
+  python recuperer_effectifs.py --rate 6 --workers 20
   python recuperer_effectifs.py --duree-max 330      s'arrête proprement après 330 min
   python recuperer_effectifs.py mon_fichier.csv      autre fichier
 
@@ -18,6 +22,7 @@ Les lignes déjà en ok ou introuvable ne sont pas re-testées : on peut relance
 """
 import csv
 import sys
+import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -48,24 +53,47 @@ TRANCHES = {
 }
 
 
-def interroger(l, pause):
+class Limiteur:
+    """Garantit au plus `par_seconde` appels par seconde, tous workers confondus."""
+
+    def __init__(self, par_seconde):
+        self.intervalle = 1.0 / par_seconde
+        self.verrou = threading.Lock()
+        self.prochain = time.monotonic()
+
+    def attendre(self):
+        with self.verrou:
+            maintenant = time.monotonic()
+            creneau = max(self.prochain, maintenant)
+            self.prochain = creneau + self.intervalle
+        delai = creneau - maintenant
+        if delai > 0:
+            time.sleep(delai)
+
+    def ralentir(self, secondes):
+        """Après un 429 : tout le monde patiente."""
+        with self.verrou:
+            self.prochain = max(self.prochain, time.monotonic() + secondes)
+
+
+def interroger(l, limiteur):
     siren = (l.get("siren") or "").strip()
     siret = (l.get("siret_siege") or "").strip()
     for essai in range(4):
+        limiteur.attendre()
         try:
             r = requests.get(API, params={"q": siren, "per_page": 1},
-                             headers=HEADERS, timeout=20)
+                             headers=HEADERS, timeout=30)
         except requests.RequestException:
             time.sleep(2 * (essai + 1))
             continue
-        if r.status_code == 429:                  # trop de requêtes : on attend
+        if r.status_code == 429:                  # trop de requêtes : tout le monde attend
             try:
                 attente = int(r.headers.get("Retry-After", 5))
             except ValueError:
                 attente = 5
-            time.sleep(max(attente, 5) * (essai + 1))
+            limiteur.ralentir(max(attente, 5) * (essai + 1))
             continue
-        time.sleep(pause)
         if r.status_code != 200:
             return {"effectif_statut": f"HTTP{r.status_code}"}
         try:
@@ -99,8 +127,8 @@ def ecrire(fichier, champs, lignes):
 
 def main():
     args = sys.argv[1:]
-    echantillon, workers, pause, duree_max = 0, 4, 0.8, 0.0
-    for nom in ("--echantillon", "--workers", "--pause", "--duree-max"):
+    echantillon, workers, rate, duree_max = 0, 20, 6.0, 0.0
+    for nom in ("--echantillon", "--workers", "--rate", "--pause", "--duree-max"):
         if nom in args:
             i = args.index(nom)
             valeur = args[i + 1]
@@ -109,11 +137,13 @@ def main():
                 echantillon = int(valeur)
             elif nom == "--workers":
                 workers = int(valeur)
-            elif nom == "--pause":
-                pause = float(valeur)
-            else:
+            elif nom == "--rate":
+                rate = float(valeur)
+            elif nom == "--duree-max":
                 duree_max = float(valeur)
+            # --pause : ancienne option, ignorée (remplacée par --rate)
     fichier = args[0] if args else "agences_independantes.csv"
+    rate = min(rate, 7.0)                         # limite de l'API
 
     with open(fichier, newline="", encoding="utf-8") as f:
         lecteur = csv.DictReader(f)
@@ -132,20 +162,24 @@ def main():
                 and (l.get("effectif_statut") or "") not in DEFINITIFS]
     if echantillon:
         a_tester = a_tester[:echantillon]
-    print(f"{len(a_tester)} lignes à interroger (workers : {workers}, pause : {pause} s)")
+    duree_estimee = len(a_tester) / rate / 60
+    print(f"{len(a_tester)} lignes à interroger (workers : {workers}, débit : {rate:g}/s, "
+          f"durée minimale : {duree_estimee:.0f} min)")
 
+    limiteur = Limiteur(rate)
     debut = time.time()
     fait = 0
     for i in range(0, len(a_tester), 500):
         lot = a_tester[i:i + 500]
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            for l, res in zip(lot, pool.map(lambda x: interroger(x, pause), lot)):
+            for l, res in zip(lot, pool.map(lambda x: interroger(x, limiteur), lot)):
                 for c in COLONNES:
                     l[c] = res.get(c, "")
         fait += len(lot)
         ecrire(fichier, champs, lignes)           # sauvegarde après chaque lot
-        print(f"  {fait}/{len(a_tester)} traitées", flush=True)
-        if duree_max and (time.time() - debut) / 60 >= duree_max:
+        ecoule = (time.time() - debut) / 60
+        print(f"  {fait}/{len(a_tester)} traitées ({fait / max(ecoule * 60, 1):.1f}/s)", flush=True)
+        if duree_max and ecoule >= duree_max:
             print(f"Durée maximale atteinte ({duree_max:.0f} min) : arrêt, relance pour continuer.")
             break
 
@@ -162,3 +196,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+  
