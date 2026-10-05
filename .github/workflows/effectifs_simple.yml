@@ -12,13 +12,13 @@ on:
         required: false
         default: "50"
       workers:
-        description: "Requêtes en parallèle"
+        description: "Requêtes en parallèle (le débit est plafonné par rate)"
+        required: false
+        default: "20"
+      rate:
+        description: "Appels par seconde, tous workers confondus (max 7)"
         required: false
         default: "6"
-      pause:
-        description: "Pause en secondes après chaque requête"
-        required: false
-        default: "0.8"
       duree_max:
         description: "Durée maximale du run en minutes (puis arrêt propre et sauvegarde)"
         required: false
@@ -48,10 +48,10 @@ jobs:
           FICHIER: ${{ github.event.inputs.fichier }}
           ECHANTILLON: ${{ github.event.inputs.echantillon }}
           WORKERS: ${{ github.event.inputs.workers }}
-          PAUSE: ${{ github.event.inputs.pause }}
+          RATE: ${{ github.event.inputs.rate }}
           DUREE_MAX: ${{ github.event.inputs.duree_max }}
         run: |
-          python recuperer_effectifs.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --pause "$PAUSE" --duree-max "$DUREE_MAX" | tee resultat.txt
+          python recuperer_effectifs.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --rate "$RATE" --duree-max "$DUREE_MAX" | tee resultat.txt
           {
             echo '## Effectifs'
             echo '```'
