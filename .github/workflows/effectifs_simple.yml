@@ -1,4 +1,4 @@
-name: Récupérer les effectifs (simple)
+name: Récupérer les effectifs
 
 on:
   workflow_dispatch:
@@ -27,6 +27,11 @@ on:
 permissions:
   contents: write
 
+# un seul workflow à la fois sur les données : les autres attendent leur tour
+concurrency:
+  group: agences-donnees
+  cancel-in-progress: false
+
 jobs:
   effectifs:
     runs-on: ubuntu-latest
@@ -53,6 +58,13 @@ jobs:
             cat resultat.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Sauvegarde de secours du fichier
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fichier-effectifs
+          path: ${{ github.event.inputs.fichier }}
+          retention-days: 7
       - name: Commit et push
         if: always()
         env:
@@ -80,3 +92,4 @@ jobs:
           done
           echo "Push impossible : récupère le fichier dans les artifacts du run."
           exit 1
+          
