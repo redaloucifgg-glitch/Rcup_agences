@@ -6,7 +6,7 @@ on:
       fichier:
         description: "CSV à enrichir"
         required: false
-	        default: "agences_independantes.csv"
+        default: "agences_independantes.csv"
       echantillon:
         description: "Nombre de lignes à traiter (0 = toutes)"
         required: false
@@ -92,4 +92,4 @@ jobs:
           done
           echo "Push impossible : récupère le fichier dans les artifacts du run."
           exit 1
-          
+		  
