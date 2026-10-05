@@ -11,6 +11,11 @@ on:
 permissions:
   contents: write
 
+# un seul workflow à la fois sur les données : les autres attendent leur tour
+concurrency:
+  group: agences-donnees
+  cancel-in-progress: false
+
 jobs:
   analyser:
     runs-on: ubuntu-latest
@@ -43,7 +48,17 @@ jobs:
           done
           if git diff --cached --quiet; then
             echo "Aucun changement"
-          else
-            git commit -m "Analyse des agences indépendantes"
-            git push
+            exit 0
           fi
+          git commit -m "Analyse des agences indépendantes"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            echo "Push refusé (essai $i/5), nouvel essai..."
+            sleep $((i * 5))
+          done
+          echo "Push impossible."
+          exit 1
+          
