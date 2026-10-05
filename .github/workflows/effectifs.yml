@@ -6,7 +6,7 @@ on:
       fichier:
         description: "CSV à enrichir"
         required: false
-        default: "agences_independantes.csv"
+	        default: "agences_independantes.csv"
       echantillon:
         description: "Nombre de lignes à traiter (0 = toutes)"
         required: false
@@ -14,14 +14,23 @@ on:
       workers:
         description: "Requêtes en parallèle"
         required: false
-        default: "4"
+        default: "6"
       pause:
         description: "Pause en secondes après chaque requête"
         required: false
         default: "0.8"
+      duree_max:
+        description: "Durée maximale du run en minutes (puis arrêt propre et sauvegarde)"
+        required: false
+        default: "330"
 
 permissions:
   contents: write
+
+# un seul workflow à la fois sur les données : les autres attendent leur tour
+concurrency:
+  group: agences-donnees
+  cancel-in-progress: false
 
 jobs:
   effectifs:
@@ -40,14 +49,22 @@ jobs:
           ECHANTILLON: ${{ github.event.inputs.echantillon }}
           WORKERS: ${{ github.event.inputs.workers }}
           PAUSE: ${{ github.event.inputs.pause }}
+          DUREE_MAX: ${{ github.event.inputs.duree_max }}
         run: |
-          python recuperer_effectifs.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --pause "$PAUSE" --duree-max 330 | tee resultat.txt
+          python recuperer_effectifs.py "$FICHIER" --echantillon "$ECHANTILLON" --workers "$WORKERS" --pause "$PAUSE" --duree-max "$DUREE_MAX" | tee resultat.txt
           {
             echo '## Effectifs'
             echo '```'
             cat resultat.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Sauvegarde de secours du fichier
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fichier-effectifs
+          path: ${{ github.event.inputs.fichier }}
+          retention-days: 7
       - name: Commit et push
         if: always()
         env:
@@ -62,7 +79,17 @@ jobs:
           fi
           if git diff --cached --quiet; then
             echo "Aucun changement"
-          else
-            git commit -m "Effectifs ajoutés"
-            git push
+            exit 0
           fi
+          git commit -m "Effectifs ajoutés"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            echo "Push refusé (essai $i/5), nouvel essai..."
+            sleep $((i * 5))
+          done
+          echo "Push impossible : récupère le fichier dans les artifacts du run."
+          exit 1
+          
